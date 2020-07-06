@@ -1,6 +1,6 @@
 read_system_message_event <- function(con, event, DT, EventChannel) {
   eventName <- "System"
-  elength <- readVarLength(con)
+  elength <- read_var_length(con)
   # on.exit(undebug(as.raw2_))
   # debug(as.raw2_)
   value <- read_integer(con, n = elength[[1]])

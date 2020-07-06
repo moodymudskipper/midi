@@ -6,7 +6,7 @@ read_meta_event <- function(con, event, DT, EventChannel) {
 
   # FIXME: We need a special case for each possible meta event. A data.frame is not the best possible solution...,
   # probably define separate S4 classes?
-  elength <- readVarLength(con)
+  elength <- read_var_length(con)
   eventName <- switch(
     type,
     "00" = "Sequence Number",
