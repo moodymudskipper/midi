@@ -1,5 +1,24 @@
+# for debugging purposes, from integer get a raw vector
+as.raw2_ <- function(x, n = NA, signed = TRUE){
+  if (signed && x < 0) x <- 256 + x
+  x <- as.character(as.hexmode(x))
+  if(!is.na(n) && nchar(x) != n*2) {
+    x <- paste0(strrep("0", n*2 - nchar(x)),x)
+  }
+  x <- strsplit(x, "")[[1]]
+  x <- matrix(x, ncol = 2)
+  x <- as.vector(apply(x, 1, function(x) as.raw(as.hexmode(paste(x, collapse= "")))))
+  x
+}
+
+as.raw2 <- function(x, n = NA, signed){
+  lapply(x, as.raw2_, n, signed)
+}
+
 read_integer <- function(con, n = 1, size = 1, signed = TRUE) {
-  readBin(con, integer(0), n = n, size = size, signed = signed, endian = "big")
+  res <- readBin(con, integer(0), n = n, size = size, signed = signed, endian = "big")
+  #lapply(as.raw2(res, size, signed), print)
+  res
 }
 
 write_integer <- function(object, con, size = 1) {
@@ -7,8 +26,18 @@ write_integer <- function(object, con, size = 1) {
 }
 
 read_raw <- function(con, n = 1) {
-  readBin(con, raw(0), n = n)
+  res <- readBin(con, raw(0), n = n)
+  #print(res)
+  res
 }
+
+# readChar <- function (con, nchars, useBytes = FALSE) {
+#   res <- base::readChar(con, nchars, useBytes)
+#   print(charToRaw(res))
+#   res
+# }
+
+
 
 write_raw <- function(object, con) {
   writeBin(as.raw(object), con)
@@ -120,8 +149,8 @@ write_channel_voice_event <- function(event, con) {
          "Channel Aftertouch" =
            write_integer(event$params$pressure, con),
          "Pitch Bend" ={
-           write_integer(event$params$pitch_wheel %/% 128, con)
            write_integer(event$params$pitch_wheel %% 128, con)
+           write_integer(event$params$pitch_wheel %/% 128, con)
          })
 }
 
@@ -246,35 +275,42 @@ write_meta_event <- function(event, con) {
       }
     },
     "Sequencer Specific" =,
-    "Meta" = write_raw(event$params$value, con, n = event$params$length)
+    "Meta" = write_raw(event$params$value, con)
   )
   }
 
 read_system_message_event <- function(con, event, DT, EventChannel) {
   eventName <- "System"
   elength <- readVarLength(con)
-  seek(con, where = elength[1], origin = "current")
+  # on.exit(undebug(as.raw2_))
+  # debug(as.raw2_)
+  value <- read_integer(con, n = elength[[1]])
+  # tuneR was just ignoring those!
+  # seek(con, where = elength[1], origin = "current")
   return(list(deltatime = DT,  message_type = "system_message", event=eventName,
-              EventChannel = EventChannel, params = list(length = elength[[1]])))
+              EventChannel = EventChannel, params = list(value = value, length = elength[[1]])))
 }
 
 write_system_message_event <- function(event, con) {
+  #browser()
   writeVarLength(event$params$length, con)
+  write_integer(event$params$value, con)
 }
 
 
 read_track_chunk_event <- function(con, lastEventChannel = NA){
   DTtemp <- readVarLength(con)
   DT <- DTtemp[1]
+
   n_DT_bytes <- DTtemp[2]
 
-  EventChannel <- readBin(con, raw(0), n = 1)
+  EventChannel <- read_raw(con)
+  # message("EventChannel: ", EventChannel)
   # event is the first quartet of the event data (right after delta time)
   # it can describe a channel (>=8, i.e. >= 1000, i.e. first bit is 1), or not
   # if it doesn't, we consider the previous channel, and roll our cursor one byte back
   event <- substr(EventChannel, 1, 1)
   #backseeked <- 0
-  browser(expr = !length(event))
 
   if(event < "8"){
     seek(con, where = -1, origin = "current")
@@ -292,10 +328,12 @@ read_track_chunk_event <- function(con, lastEventChannel = NA){
 }
 
 write_track_chunk_event <- function(event, con, lastEventChannel = NA){
+
   # Delta time
   writeVarLength(event$deltatime, con)
 
   # EventChannel
+  # message("EventChannel: ", event$EventChannel)
   write_raw(event$EventChannel, con)
 
   # deal with redundancy
@@ -414,13 +452,12 @@ encode_header <- function(header, con){
 
 encode_tracks <- function(tracks, con){
   for(track in tracks){
+
     # Chunk Type
     writeChar("MTrk", con, nchars = 4, eos = NULL)
     # length
-    # this is not the right length! It should be 19
-    # either we compute it from the rest, or we reposition the cursor after loop
-    # or we store it
-    track_length <- attr(track, "length") #
+    track_length <- attr(track, "length")
+
     write_integer(track_length, con, size = 4)
     # data
     for (i in seq(length(track))){
@@ -460,6 +497,7 @@ parse_tracks <- function(con, n_tracks){
     bytes <- 0
     i <- 0
     repeat {
+      #browser()
       i <- i+1
       last_event <- if(i>1)  MeventList[[i-1]][["EventChannel"]] else NA
       MeventList[[i]] <- read_track_chunk_event(con, last_event)
@@ -480,7 +518,9 @@ parse_midi <- function(file){
   con <- file(description = file, open = "rb")
   on.exit(close(con))
 
+  message("parsing header")
   header <- parse_header(con)
+  message("parsing tracks")
   tracks <- parse_tracks(con, header$n_tracks)
 
   list(header= header, tracks = tracks)
