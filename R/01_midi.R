@@ -107,7 +107,7 @@ parse_header <- function(con){
     stop("Midi representation of timing: Frames per second / ticks per frame not yet implemented, please ask the author")
   }
 
-  list(format = MThd_format,
+  tibble::tibble(format = MThd_format,
        n_tracks = MThd_tracks,
        n_ticks_per_quarter_note = MThd_division)
 }
@@ -154,6 +154,7 @@ parse_tracks <- function(con, n_tracks){
       if(!is.null(last_type) &&  last_type == "2f")
         break
     }
+    track <- purrr::map_dfr(track, ~{.$params <- list(.$params);as_tibble(.)})
     attr(track, "length") <- MTrk_length
     tracks[[i_track]] <- track
   }
@@ -168,9 +169,9 @@ encode_tracks <- function(tracks, con){
     track_length <- attr(track, "length")
     write_integer(track_length, con, size = 4)
     # data
-    for (i in seq(length(track))){
+    for (i in seq(nrow(track))){
       #<last_event <- if(i>1)  track[[i-1]][["EventChannel"]] else NA
-      write_track_event(track[[i]], con) #, last_event)
+      write_track_event(track[i,], con) #, last_event)
     }
   }
 }

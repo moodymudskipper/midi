@@ -7,7 +7,7 @@ read_channel_voice_event <- function(con, event, DT, EventChannel) {
   p1 <- read_integer(con)
   p2 <- if(event %in% c("c", "d")) NA else read_integer(con)
 
-  out <- list(deltatime=DT, message_type = "channel_voice")
+  out <- list(deltatime=DT, event_type = "channel_voice")
 
   # This is this table, transcribed in hexa quartet :
   # http://www.music.mcgill.ca/~ich/classes/mumt306/StandardMIDIfileformat.html#BMA1_
@@ -37,23 +37,23 @@ write_channel_voice_event <- function(event, con) {
   switch(event$event,
          "Note Off" =,
          "Note On" = {
-           write_integer(event$params$key_number, con)
-           write_integer(event$params$velocity, con)
+           write_integer(event$params[[1]]$key_number, con)
+           write_integer(event$params[[1]]$velocity, con)
          },
          "Note Aftertouch" = {
-           write_integer(event$params$key_number, con)
-           write_integer(event$params$pressure, con)
+           write_integer(event$params[[1]]$key_number, con)
+           write_integer(event$params[[1]]$pressure, con)
          },
          "Controller" = {
-           write_integer(event$params$controller, con)
-           write_integer(event$params$value, con)
+           write_integer(event$params[[1]]$controller, con)
+           write_integer(event$params[[1]]$value, con)
          },
          "Program Change" =
-           write_integer(event$params$program, con),
+           write_integer(event$params[[1]]$program, con),
          "Channel Aftertouch" =
-           write_integer(event$params$pressure, con),
+           write_integer(event$params[[1]]$pressure, con),
          "Pitch Bend" ={
-           write_integer(event$params$pitch_wheel %% 128, con)
-           write_integer(event$params$pitch_wheel %/% 128, con)
+           write_integer(event$params[[1]]$pitch_wheel %% 128, con)
+           write_integer(event$params[[1]]$pitch_wheel %/% 128, con)
          })
 }

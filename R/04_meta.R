@@ -65,7 +65,7 @@ read_meta_event <- function(con, event, DT, EventChannel) {
 
   params$length <- elength[[1]]
 
-  list(deltatime=DT, message_type = "meta_event", event=eventName, type=type, params = params, EventChannel=EventChannel)
+  list(deltatime=DT, event_type = "meta", event=eventName, type=type, params = params, EventChannel=EventChannel)
 }
 
 write_meta_event <- function(event, con) {
@@ -74,7 +74,7 @@ write_meta_event <- function(event, con) {
   write_raw(raw_type, con)
 
   # length
-  writeVarLength(event$params$length, con)
+  write_var_length(event$params[[1]]$length, con)
 
   switch(
     event$event,
@@ -86,12 +86,12 @@ write_meta_event <- function(event, con) {
     "Marker" =,
     "Cue Point" =,
     "Program Name" =,
-    "Device Name" = writeChar(event$params$value, con, nchars = event$params$length, eos = NULL),
+    "Device Name" = writeChar(event$params[[1]]$value, con, nchars = event$params[[1]]$length, eos = NULL),
     "Sequence Number" =,
     "MIDI Channel Prefix" = ,
-    "MIDI Port" = write_integer(event$params$value, con, size = elength[1]),
+    "MIDI Port" = write_integer(event$params[[1]]$value, con, size = elength[1]),
     "Set Tempo" = {
-      val <- event$params$value
+      val <- event$params[[1]]$value
       tempo <- integer(3)
       tempo[3] <- val %% 256
       val <- (val-tempo[3]) / 256
@@ -101,14 +101,14 @@ write_meta_event <- function(event, con) {
       write_integer(tempo, con)
     },
     "Time Signature" = {
-      ts <- strsplit(event$params$time_signature, "/")[[1]]
+      ts <- strsplit(event$params[[1]]$time_signature, "/")[[1]]
       write_integer(ts[[1]], con)
       write_integer(log(as.numeric(ts[[2]]), 2), con)
-      write_integer(event$params$clocks_per_tick, con)
-      write_integer(event$params$n_32nd_notes_per_24_midi_clocks, con)
+      write_integer(event$params[[1]]$clocks_per_tick, con)
+      write_integer(event$params[[1]]$n_32nd_notes_per_24_midi_clocks, con)
     },
     "Key Signature" = {
-      val <- event$params$value
+      val <- event$params[[1]]$value
       if(endsWith(val, "major")) {
         ma <- paste(c("B (H)", "Gb", "Db", "Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B (H)", "F#", "C#"), "major")
         write_integer(match(val, ma) - 8, con)
@@ -121,6 +121,6 @@ write_meta_event <- function(event, con) {
       }
     },
     "Sequencer Specific" =,
-    "Meta" = write_raw(event$params$value, con)
+    "Meta" = write_raw(event$params[[1]]$value, con)
   )
 }
