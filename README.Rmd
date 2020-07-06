@@ -1,0 +1,58 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# midi
+
+JUST A DRAFT!!!
+
+This is a rewrite of `TuneR::readMidi()`, with a counterpart to write midi.
+
+We don't create a data.frame but a list.
+
+It should probably be an R6 object, and the structure should evolve.
+
+I'd like to be able to change scales/modes, apply arpeggios etc, maybe do some
+analysis on big amounts of midi files to detect patterns in styles of music or
+specific artists, but we're far from there.
+
+I'd like to do the same with guitar pro files too.
+
+## Installation
+
+You can install the released version of midi from [CRAN](https://CRAN.R-project.org) with:
+
+``` r
+remotes::install_github("moodymudskipper/midi")
+```
+
+## Example
+
+Load file (a single piano note), check out the parsed data, write it back and check that it is
+the same. 
+
+```{r}
+library(midi)
+
+file <- "data/test.mid"
+
+parsed <- parse_midi(file)
+str(parsed)
+
+file2 <- tempfile(fileext = ".mid")
+encode_midi(parsed, file2)
+
+hexView::viewRaw(file)
+hexView::viewRaw(file2)
+```
