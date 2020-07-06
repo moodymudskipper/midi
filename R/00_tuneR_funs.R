@@ -1,8 +1,4 @@
-# http://www.personal.kent.edu/~sbirch/Music_Production/MP-II/MIDI/midi_file_format.htm
-# http://www.music.mcgill.ca/~ich/classes/mumt306/StandardMIDIfileformat.html
-# https://onlinesequencer.net/
-# https://www.jchr.be/linux/midi-format.htm
-# https://github.com/colxi/midi-parser-js/wiki/MIDI-File-Format-Specifications
+
 
 # convert to bytes the length of a track chunk
 # var_length_raw(380) # 82 7c
@@ -213,4 +209,3 @@ readMidi <- function(file){
                                        "End of Track", "Set Tempo", "SMPTE Offset", "Time Signature", "Key Signature", "Sequencer Specific"))
   allTracks
 }
-
