@@ -44,31 +44,25 @@ write_raw <- function(object, con) {
 }
 
 writeVarLength <- function(n, con){
-  b <- numeric(4)
+  b <- rep(NA_integer_, 4)
   b[1] <- n
   if(b[1] > 127){
     b[2] <- b[1] %/% 128
-    b[1] <- b[1] %% 128 + 128
-    write_integer(b[1], con)
+    b[1] <- b[1] %% 128
     if(b[2] > 127){
       b[3] <- b[2] %/% 128
-      b[2] <- b[2] %% 128 + 128
-      write_integer(b[2], con)
+      b[2] <- b[2] %% 128
       if(b[3] > 127){
         b[4] <- b[3] %/% 128
-        b[3] <- b[3] %% 128 + 128
-        write_integer(b[3], con)
-        write_integer(b[4], con)
-      } else {
-        write_integer(b[3], con)
+        b[3] <- b[3] %% 128
       }
-    } else {
-      write_integer(b[2], con)
     }
-  } else {
-    write_integer(b[1], con)
   }
+  b <- b[!is.na(b)]
+  b[-1] <-  b[-1] + 128
+  sapply(rev(b), write_integer, con)
 }
+
 
 readVarLength <- function(con){
   # in principle should be recursive, but using 4 bytes is enough for practical uses
@@ -313,6 +307,7 @@ read_track_chunk_event <- function(con, lastEventChannel = NA){
   #backseeked <- 0
 
   if(event < "8"){
+    stop()
     seek(con, where = -1, origin = "current")
     EventChannel <- lastEventChannel
     event <- substr(EventChannel, 1, 1)
@@ -461,6 +456,7 @@ encode_tracks <- function(tracks, con){
     write_integer(track_length, con, size = 4)
     # data
     for (i in seq(length(track))){
+      #if(i == 133) debugonce(write_track_chunk_event)
       last_event <- if(i>1)  track[[i-1]][["EventChannel"]] else NA
       write_track_chunk_event(track[[i]], con) #, last_event)
     }
@@ -499,6 +495,7 @@ parse_tracks <- function(con, n_tracks){
     repeat {
       #browser()
       i <- i+1
+      #if(i == 133) debugonce(read_track_chunk_event)
       last_event <- if(i>1)  MeventList[[i-1]][["EventChannel"]] else NA
       MeventList[[i]] <- read_track_chunk_event(con, last_event)
       #bytes <- bytes + MeventList[[i]][["bytes"]]
