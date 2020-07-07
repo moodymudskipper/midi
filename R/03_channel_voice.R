@@ -15,7 +15,7 @@ read_channel_voice_event <- function(con, event, DT, EventChannel) {
                       "8" = "Note Off",
                       "9" = "Note On",
                       "a" = "Note Aftertouch",
-                      "b" = "Controller",
+                      "b" = "Control Change",
                       "c" = "Program Change",
                       "d" = "Channel Aftertouch",
                       "e" = "Pitch Bend",
@@ -24,7 +24,7 @@ read_channel_voice_event <- function(con, event, DT, EventChannel) {
                        "8" =,
                        "9" = list(channel = channel, key_number=p1, velocity=p2),
                        "a" = list(channel = channel, key_number=p1, pressure=p2),
-                       "b" = list(channel = channel, controller=p1, value=p2),
+                       "b" = list(channel = channel, controller_number=p1, value=p2),
                        "c" = list(channel = channel, program=p1),
                        "d" = list(channel = channel, pressure=p1),
                        "e" = list(channel = channel, pitch_wheel=p2*128+p1))
@@ -44,7 +44,7 @@ write_channel_voice_event <- function(event, con) {
            write_integer(event$params[[1]]$key_number, con)
            write_integer(event$params[[1]]$pressure, con)
          },
-         "Controller" = {
+         "Control Change" = {
            write_integer(event$params[[1]]$controller, con)
            write_integer(event$params[[1]]$value, con)
          },

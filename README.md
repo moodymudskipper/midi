@@ -8,9 +8,9 @@ JUST A DRAFT\!\!\!
 This is a rewrite of `TuneR::readMidi()`, with a counterpart to write
 midi.
 
-We don’t create a data.frame but a list.
+We don’t create a data.frame but a R6 object.
 
-It should probably be an R6 object, and the structure should evolve.
+The structure is not stable yet.
 
 I’d like to be able to change scales/modes, apply arpeggios etc, maybe
 do some analysis on big amounts of midi files to detect patterns in
@@ -20,8 +20,7 @@ I’d like to do the same with guitar pro files too.
 
 ## Installation
 
-You can install the released version of midi from
-[CRAN](https://CRAN.R-project.org) with:
+Install with:
 
 ``` r
 remotes::install_github("moodymudskipper/midi")
@@ -29,113 +28,92 @@ remotes::install_github("moodymudskipper/midi")
 
 ## Example
 
-Load file (a single piano note), check out the parsed data, write it
-back and check that it is the same.
+Load a simple music file with 2 instruments (that’s 3 tracks here)
 
 ``` r
 library(midi)
 
-file <- "data/test.mid"
+mid <- parse_midi("https://www.8notes.com/school/midi/violin/vivaldi_spring.mid")
+#> parsing header
+#> parsing tracks
 
-parsed <- parse_midi(file)
-str(parsed)
-#> List of 2
-#>  $ header:List of 3
-#>   ..$ format                  : int 1
-#>   ..$ n_tracks                : int 2
-#>   ..$ n_ticks_per_quarter_note: int 384
-#>  $ tracks:List of 2
-#>   ..$ :List of 3
-#>   .. ..$ :List of 6
-#>   .. .. ..$ deltatime   : num 0
-#>   .. .. ..$ message_type: chr "meta_event"
-#>   .. .. ..$ event       : chr "Time Signature"
-#>   .. .. ..$ type        : chr "58"
-#>   .. .. ..$ params      :List of 4
-#>   .. .. .. ..$ time_signature                 : chr "4/4"
-#>   .. .. .. ..$ clocks_per_tick                : int 24
-#>   .. .. .. ..$ n_32nd_notes_per_24_midi_clocks: int 8
-#>   .. .. .. ..$ length                         : num 4
-#>   .. .. ..$ EventChannel: raw ff
-#>   .. ..$ :List of 6
-#>   .. .. ..$ deltatime   : num 0
-#>   .. .. ..$ message_type: chr "meta_event"
-#>   .. .. ..$ event       : chr "Set Tempo"
-#>   .. .. ..$ type        : chr "51"
-#>   .. .. ..$ params      :List of 2
-#>   .. .. .. ..$ value : num 545454
-#>   .. .. .. ..$ length: num 3
-#>   .. .. ..$ EventChannel: raw ff
-#>   .. ..$ :List of 6
-#>   .. .. ..$ deltatime   : num 0
-#>   .. .. ..$ message_type: chr "meta_event"
-#>   .. .. ..$ event       : chr "End of Track"
-#>   .. .. ..$ type        : chr "2f"
-#>   .. .. ..$ params      :List of 2
-#>   .. .. .. ..$ value : raw(0) 
-#>   .. .. .. ..$ length: num 0
-#>   .. .. ..$ EventChannel: raw ff
-#>   .. ..- attr(*, "length")= int 19
-#>   ..$ :List of 5
-#>   .. ..$ :List of 6
-#>   .. .. ..$ deltatime   : num 0
-#>   .. .. ..$ message_type: chr "meta_event"
-#>   .. .. ..$ event       : chr "Sequence/Track Name"
-#>   .. .. ..$ type        : chr "03"
-#>   .. .. ..$ params      :List of 2
-#>   .. .. .. ..$ value : chr "Electric Piano"
-#>   .. .. .. ..$ length: num 14
-#>   .. .. ..$ EventChannel: raw ff
-#>   .. ..$ :List of 5
-#>   .. .. ..$ deltatime   : num 0
-#>   .. .. ..$ message_type: chr "channel_voice"
-#>   .. .. ..$ event       : chr "Program Change"
-#>   .. .. ..$ params      :List of 2
-#>   .. .. .. ..$ channel: num 0
-#>   .. .. .. ..$ program: int 0
-#>   .. .. ..$ EventChannel: raw c0
-#>   .. ..$ :List of 5
-#>   .. .. ..$ deltatime   : num 0
-#>   .. .. ..$ message_type: chr "channel_voice"
-#>   .. .. ..$ event       : chr "Note On"
-#>   .. .. ..$ params      :List of 3
-#>   .. .. .. ..$ channel   : num 0
-#>   .. .. .. ..$ key_number: int 48
-#>   .. .. .. ..$ velocity  : int 50
-#>   .. .. ..$ EventChannel: raw 90
-#>   .. ..$ :List of 5
-#>   .. .. ..$ deltatime   : num 96
-#>   .. .. ..$ message_type: chr "channel_voice"
-#>   .. .. ..$ event       : chr "Note Off"
-#>   .. .. ..$ params      :List of 3
-#>   .. .. .. ..$ channel   : num 0
-#>   .. .. .. ..$ key_number: int 48
-#>   .. .. .. ..$ velocity  : int 0
-#>   .. .. ..$ EventChannel: raw 80
-#>   .. ..$ :List of 6
-#>   .. .. ..$ deltatime   : num 0
-#>   .. .. ..$ message_type: chr "meta_event"
-#>   .. .. ..$ event       : chr "End of Track"
-#>   .. .. ..$ type        : chr "2f"
-#>   .. .. ..$ params      :List of 2
-#>   .. .. .. ..$ value : raw(0) 
-#>   .. .. .. ..$ length: num 0
-#>   .. .. ..$ EventChannel: raw ff
-#>   .. ..- attr(*, "length")= int 33
+# it prints nicely
+mid
+#> header:
+#> # A tibble: 1 x 3
+#>   format n_tracks n_ticks_per_quarter_note
+#>    <int>    <int>                    <int>
+#> 1      1        3                      960
+#> tracks:
+#> $`Spring from the Four Seasons`
+#> # A tibble: 7 x 4
+#>    time event channel
+#>   <dbl> <chr>   <int>
+#> 1     0 Time~      NA
+#> 2     0 Key ~      NA
+#> 3     0 Sequ~      NA
+#> 4     0 Text~      NA
+#> 5  2880 Set ~      NA
+#> 6 99840 Time~      NA
+#> 7 99841 End ~      NA
+#> # ... with 1 more variable: params <mid_prms>
+#> 
+#> $Violin
+#> # A tibble: 204 x 4
+#>     time event               channel                       params
+#>    <dbl> <chr>                 <int>                   <mid_prms>
+#>  1  2880 Program Change            1                           40
+#>  2  2880 Control Change            1    0, controller_number: 121
+#>  3  2880 Control Change            1    0, controller_number:  64
+#>  4  2880 Control Change            1   42, controller_number:  91
+#>  5  2880 Control Change            1   38, controller_number:  10
+#>  6  2880 Control Change            1  115, controller_number:   7
+#>  7  2880 Sequence/Track Name      NA                       Violin
+#>  8  2880 Note On                   1            69, velocity:  84
+#>  9  3743 Note Off                  1            69, velocity:   0
+#> 10  3840 Note On                   1            73, velocity: 105
+#> # ... with 194 more rows
+#> 
+#> $Piano
+#> # A tibble: 597 x 4
+#>     time event          channel                       params
+#>    <dbl> <chr>            <int>                   <mid_prms>
+#>  1  2880 Program Change       0                            0
+#>  2  2880 Control Change       0    0, controller_number: 121
+#>  3  2880 Control Change       0    0, controller_number:  64
+#>  4  2880 Control Change       0   48, controller_number:  91
+#>  5  2880 Control Change       0   51, controller_number:  10
+#>  6  2880 Control Change       0  100, controller_number:   7
+#>  7  2880 Note On              0            69, velocity:  92
+#>  8  2880 Control Change       0    0, controller_number: 121
+#>  9  2880 Control Change       0    0, controller_number:  64
+#> 10  2880 Control Change       0   48, controller_number:  91
+#> # ... with 587 more rows
 
-file2 <- tempfile(fileext = ".mid")
-encode_midi(parsed, file2)
+# we can show separately header or tracks
+mid$header
+#> # A tibble: 1 x 3
+#>   format n_tracks n_ticks_per_quarter_note
+#>    <int>    <int>                    <int>
+#> 1      1        3                      960
 
-hexView::viewRaw(file)
-#>  0  :  4d 54 68 64 00 00 00 06 00 01 00 02 01 80 4d 54 72  |  MThd..........MTr
-#> 17  :  6b 00 00 00 13 00 ff 58 04 04 02 18 08 00 ff 51 03  |  k......X.......Q.
-#> 34  :  08 52 ae 00 ff 2f 00 4d 54 72 6b 00 00 00 21 00 ff  |  .R.../.MTrk...!..
-#> 51  :  03 0e 45 6c 65 63 74 72 69 63 20 50 69 61 6e 6f 00  |  ..Electric Piano.
-#> 68  :  c0 00 00 90 30 32 60 80 30 00 00 ff 2f 00           |  ....02`.0.../.
-hexView::viewRaw(file2)
-#>  0  :  4d 54 68 64 00 00 00 06 00 01 00 02 01 80 4d 54 72  |  MThd..........MTr
-#> 17  :  6b 00 00 00 13 00 ff 58 04 04 02 18 08 00 ff 51 03  |  k......X.......Q.
-#> 34  :  08 52 ae 00 ff 2f 00 4d 54 72 6b 00 00 00 21 00 ff  |  .R.../.MTrk...!..
-#> 51  :  03 0e 45 6c 65 63 74 72 69 63 20 50 69 61 6e 6f 00  |  ..Electric Piano.
-#> 68  :  c0 00 00 90 30 32 60 80 30 00 00 ff 2f 00           |  ....02`.0.../.
+# methods will be available for extraction and transformations, for now only: 
+mid$track_names()
+#> [1] "Spring from the Four Seasons" "Violin"                      
+#> [3] "Piano"
+
+# we can save locally
+local_file <- tempfile(fileext = ".mid")
+encode_midi(mid, local_file)
+
+# and reimport to check if our back and forth transformation was reliable
+mid_reimported <- parse_midi(local_file)
+#> parsing header
+#> parsing tracks
+all.equal(mid, mid_reimported) 
+#> [1] TRUE
+
+# listen to it : 
+cat(local_file)
+#> C:\Users\afabri\AppData\Local\Temp\RtmpusmViH\file214878f9610c.mid
 ```

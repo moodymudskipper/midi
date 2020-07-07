@@ -19,8 +19,16 @@ parse_midi <- function(file){
   header <- parse_header(con)
   message("parsing tracks")
   tracks <- parse_tracks(con, header$n_tracks)
+  tracks <- lapply(tracks, function(x) {
+    class(x) <- c("midi_track", class(x))
+    x
+    })
 
-  list(header= header, tracks = tracks)
+  names(tracks) <- vapply(tracks, function(x) {
+    subset(x, event == "Sequence/Track Name")[["params"]][[1]][["value"]]
+  }, character(1), USE.NAMES = FALSE)
+
+  midi$new(header, tracks)
 }
 
 
@@ -154,7 +162,7 @@ parse_tracks <- function(con, n_tracks){
       if(!is.null(last_type) &&  last_type == "2f")
         break
     }
-    track <- purrr::map_dfr(track, ~{.$params <- list(.$params);as_tibble(.)})
+    track <- purrr::map_dfr(track, ~{.$params <- list(.$params);tibble::as_tibble(.)})
     attr(track, "length") <- MTrk_length
     tracks[[i_track]] <- track
   }

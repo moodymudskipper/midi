@@ -11,3 +11,4 @@ Encoding: UTF-8
 LazyData: true
 URL: https://github.com/moodymudskipper/midi
 BugReports: https://github.com/moodymudskipper/midi/issues
+RoxygenNote: 7.1.0

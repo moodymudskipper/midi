@@ -19,9 +19,9 @@ JUST A DRAFT!!!
 
 This is a rewrite of `TuneR::readMidi()`, with a counterpart to write midi.
 
-We don't create a data.frame but a list.
+We don't create a data.frame but a R6 object.
 
-It should probably be an R6 object, and the structure should evolve.
+The structure is not stable yet.
 
 I'd like to be able to change scales/modes, apply arpeggios etc, maybe do some
 analysis on big amounts of midi files to detect patterns in styles of music or
@@ -31,28 +31,37 @@ I'd like to do the same with guitar pro files too.
 
 ## Installation
 
-You can install the released version of midi from [CRAN](https://CRAN.R-project.org) with:
-
+Install with:
 ``` r
 remotes::install_github("moodymudskipper/midi")
 ```
 
 ## Example
 
-Load file (a single piano note), check out the parsed data, write it back and check that it is
-the same. 
+Load a simple music file with 2 instruments (that's 3 tracks here) 
 
 ```{r}
 library(midi)
 
-file <- "data/test.mid"
+mid <- parse_midi("https://www.8notes.com/school/midi/violin/vivaldi_spring.mid")
 
-parsed <- parse_midi(file)
-str(parsed)
+# it prints nicely
+mid
 
-file2 <- tempfile(fileext = ".mid")
-encode_midi(parsed, file2)
+# we can show separately header or tracks
+mid$header
 
-hexView::viewRaw(file)
-hexView::viewRaw(file2)
+# methods will be available for extraction and transformations, for now only: 
+mid$track_names()
+
+# we can save locally
+local_file <- tempfile(fileext = ".mid")
+encode_midi(mid, local_file)
+
+# and reimport to check if our back and forth transformation was reliable
+mid_reimported <- parse_midi(local_file)
+all.equal(mid, mid_reimported) 
+
+# listen to it : 
+cat(local_file)
 ```
