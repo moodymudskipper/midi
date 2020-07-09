@@ -23,10 +23,11 @@ parse_midi <- function(file){
     class(x) <- c("midi_track", class(x))
     x
     })
-
   names(tracks) <- vapply(tracks, function(x) {
-    subset(x, event == "Sequence/Track Name")[["params"]][[1]][["value"]]
+    params <- subset(x, event == "Sequence/Track Name")[["params"]]
+    if(length(params)) params[[1]][["value"]] else ""
   }, character(1), USE.NAMES = FALSE)
+  #class(tracks) <- c("midi_track_list", class(tracks))
 
   midi$new(header, tracks)
 }
@@ -171,6 +172,7 @@ parse_tracks <- function(con, n_tracks){
 
 encode_tracks <- function(tracks, con){
   for(track in tracks){
+
     # Chunk Type
     writeChar("MTrk", con, nchars = 4, eos = NULL)
     # length
