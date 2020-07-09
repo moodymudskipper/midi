@@ -1,59 +1,54 @@
 
-read_channel_voice_event <- function(con, event, DT, EventChannel) {
+read_channel_voice_event <- function(con, nibble1, DT, byte1) {
 
   # shifting removes the event bits to leave only the channel bits
   # then we balance the multiplication that the shifting produced
-  channel <- as.numeric(rawShift(EventChannel, 4)) / 2^4
-  p1 <- read_integer(con)
-  p2 <- if(event %in% c("c", "d")) NA else read_integer(con)
+  channel <- as.numeric(rawShift(byte1, 4)) / 2^4
 
-  out <- list(deltatime=DT, event_type = "channel_voice")
+  # filter lookup table on relevant nibble
+  cvm <- channel_voices_messages
+  cvm <- cvm[cvm$nibble1 == nibble1,]
+  event <- cvm$event[1]
 
-  # This is this table, transcribed in hexa quartet :
-  # http://www.music.mcgill.ca/~ich/classes/mumt306/StandardMIDIfileformat.html#BMA1_
-  out$event <- switch(event,
-                      "8" = "Note Off",
-                      "9" = "Note On",
-                      "a" = "Note Aftertouch",
-                      "b" = "Control Change",
-                      "c" = "Program Change",
-                      "d" = "Channel Aftertouch",
-                      "e" = "Pitch Bend",
-                      "f" = "Meta or System")
-  out$params <- switch(event,
-                       "8" =,
-                       "9" = list(channel = channel, key_number=p1, velocity=p2),
-                       "a" = list(channel = channel, key_number=p1, pressure=p2),
-                       "b" = list(channel = channel, controller_number=p1, value=p2),
-                       "c" = list(channel = channel, program=p1),
-                       "d" = list(channel = channel, pressure=p1),
-                       "e" = list(channel = channel, pitch_wheel=p2*128+p1))
-  # we could also include note here, by looking at table, but we choose to limit redundancies here
-  out$EventChannel <- EventChannel
-  out
+  #feed the relevant named params
+  params <- list(channel = channel)
+  for (byte_descr in cvm$byte_descr){
+    params[[byte_descr]] <- read_integer(con)
+  }
+
+  # For control change we edit the event
+  if(nibble1 == "b"){
+    #browser()
+    descr <- controller_messages$descr[
+      controller_messages$byte2_dec == params$controller_number]
+    event <- paste0(event, ": ", descr)
+  }
+
+  # convert pitch bend from 2 to to 1 param
+  if(nibble1 == "e") # pitch bend
+    params <- list(channel = channel, pitch_wheel =
+                     params$most_significant_7_bits*128 +
+                     params$least_significant_7_bits)
+
+  list(deltatime=DT, event_type = "channel_voice", event = event, params = params, EventChannel = byte1)
 }
 
 write_channel_voice_event <- function(event, con) {
-  switch(event$event,
-         "Note Off" =,
-         "Note On" = {
-           write_integer(event$params[[1]]$key_number, con)
-           write_integer(event$params[[1]]$velocity, con)
-         },
-         "Note Aftertouch" = {
-           write_integer(event$params[[1]]$key_number, con)
-           write_integer(event$params[[1]]$pressure, con)
-         },
-         "Control Change" = {
-           write_integer(event$params[[1]]$controller, con)
-           write_integer(event$params[[1]]$value, con)
-         },
-         "Program Change" =
-           write_integer(event$params[[1]]$program, con),
-         "Channel Aftertouch" =
-           write_integer(event$params[[1]]$pressure, con),
-         "Pitch Bend" ={
-           write_integer(event$params[[1]]$pitch_wheel %% 128, con)
-           write_integer(event$params[[1]]$pitch_wheel %/% 128, con)
-         })
+  if(startsWith(event$event, "Control Change")) {
+    event$event <- "Control Change"
+  }
+  cvm <- channel_voices_messages
+  cvm <- cvm[cvm$event == event$event,]
+
+  # convert back pitch bend from 1 to to 2 params
+  if(event$event == "Pitch Bend") {
+    event$params[[1]] <- list(
+      event$params[[1]][[1]],
+      event$params[[1]]$pitch_wheel %% 128,
+      event$params[[1]]$pitch_wheel %/% 128)
+  }
+  for (i in seq(nrow(cvm))){
+    write_integer(event$params[[1]][[1+i]], con) # +1 because channel is the first param
+  }
+
 }
