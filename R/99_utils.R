@@ -52,9 +52,7 @@ read_var_length <- function(con){
 }
 
 
-as_raw <- function(x, n = NA, signed){
-  lapply(x, as_raw0, n, signed)
-}
+
 
 read_integer <- function(con, n = 1, size = 1, signed = TRUE) {
   res <- readBin(con, integer(0), n = n, size = size, signed = signed, endian = "big")
@@ -76,18 +74,22 @@ write_raw <- function(object, con) {
   writeBin(as.raw(object), con)
 }
 
-# for debugging purposes, from integer get a raw vector
-as_raw0 <- function(x, n = NA, signed = TRUE){
-  if (signed && x < 0) x <- 256 + x
-  x <- as.character(as.hexmode(x))
-  if(!is.na(n) && nchar(x) != n*2) {
-    x <- paste0(strrep("0", n*2 - nchar(x)),x)
-  }
-  x <- strsplit(x, "")[[1]]
-  x <- matrix(x, ncol = 2)
-  x <- as.vector(apply(x, 1, function(x) as.raw(as.hexmode(paste(x, collapse= "")))))
-  x
-}
+# # for debugging purposes, from integer get a raw vector
+# as_raw0 <- function(x, n = NA, signed = TRUE){
+#   if (signed && x < 0) x <- 256 + x
+#   x <- as.character(as.hexmode(x))
+#   if(!is.na(n) && nchar(x) != n*2) {
+#     x <- paste0(strrep("0", n*2 - nchar(x)),x)
+#   }
+#   x <- strsplit(x, "")[[1]]
+#   x <- matrix(x, ncol = 2)
+#   x <- as.vector(apply(x, 1, function(x) as.raw(as.hexmode(paste(x, collapse= "")))))
+#   x
+# }
+#
+# as_raw <- function(x, n = NA, signed){
+#   lapply(x, as_raw0, n, signed)
+# }
 
 # readChar <- function (con, nchars, useBytes = FALSE) {
 #   res <- base::readChar(con, nchars, useBytes)
