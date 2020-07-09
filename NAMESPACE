@@ -2,6 +2,5 @@
 
 S3method(format,midi_params)
 S3method(print,midi_track)
-export(encode_midi)
-export(midi_params)
 export(parse_midi)
+export(vec_ptype_abbr.midi_params)
