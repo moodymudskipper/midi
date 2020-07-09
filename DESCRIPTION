@@ -1,12 +1,11 @@
 Package: midi
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Work with midi Objects
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Author: Antoine Fabri
+Maintainer: The package maintainer <antoine.fabri@gmail.com>
+Description: Load midi file into an R6 object, apply methods, and encode back to a midi file.
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
 URL: https://github.com/moodymudskipper/midi
@@ -14,3 +13,7 @@ BugReports: https://github.com/moodymudskipper/midi/issues
 RoxygenNote: 7.1.0
 Suggests: 
     testthat
+Imports: 
+    purrr,
+    vctrs,
+    tibble
