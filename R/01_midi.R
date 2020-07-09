@@ -36,16 +36,6 @@ parse_midi <- function(file){
   midi$new(header, tracks)
 }
 
-
-#' @export
-encode_midi <- function(mid, file){
-  file.create(file)
-  con <- file(description = file, open = "wb")
-  on.exit(close(con))
-  encode_header(mid$header, con)
-  encode_tracks(mid$tracks, con)
-}
-
 parse_header <- function(con){
   # As comments We copy and paste or paraphrase pieces of doc from :
 

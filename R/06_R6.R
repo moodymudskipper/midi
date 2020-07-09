@@ -7,26 +7,32 @@ midi <- R6::R6Class("midi", list(
     # we might want to be able define an empty midi with default headers etc
     self$header <- header
     self$tracks <- tracks
-  },
-  print = function(..., n = NULL) {
-    # so we can print tibbles with >20 rows
-    opt <- options(tibble.print_min = n)
-    on.exit(options(opt))
-    message("header:")
-    print(self$header, ...)
-    message("tracks:")
-    print(self$tracks, ...)
-    invisible(self)
   }
 ))
 
-# test <- midi$new(parsed$header, parsed$tracks)
-# attributes(test$tracks[[1]])
+midi$set("public", "print", function(..., n = NULL) {
+  # so we can print tibbles with >20 rows
+  opt <- options(tibble.print_min = n)
+  on.exit(options(opt))
+  message("header:")
+  print(self$header, ...)
+  message("tracks:")
+  print(self$tracks, ...)
+  invisible(self)
+})
 
 midi$set("public", "track_names", function() {
   vapply(self$tracks, function(x) {
     subset(x, event == "Sequence/Track Name")[["params"]][[1]][["value"]]
   }, character(1), USE.NAMES = FALSE)
+})
+
+midi$set("public", "encode", function(to){
+  file.create(to)
+  con <- file(description = to, open = "wb")
+  on.exit(close(con))
+  encode_header(self$header, con)
+  encode_tracks(self$tracks, con)
 })
 
 
