@@ -51,10 +51,13 @@ mid
 # we can show separately header or tracks
 mid$header
 
-# methods will be available, for now only: 
+# print names
 mid$track_names()
 
-# we can save locally
+# plot
+mid$plot()
+
+# re-encode to midi
 local_file <- tempfile(fileext = ".mid")
 mid$encode(local_file)
 

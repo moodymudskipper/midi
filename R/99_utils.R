@@ -1,4 +1,10 @@
-
+#' @importFrom magrittr %>%
+#' @importFrom stats setNames
+#' @importFrom dplyr mutate filter group_by summarize select arrange bind_rows
+#' @importFrom ggplot2 ggplot aes geom_segment labs theme theme_classic
+#' @importFrom ggplot2 scale_y_continuous element_line element_blank
+#' @importFrom ggplot2 scale_x_continuous
+NULL
 
 write_var_length <- function(n, con){
   b <- rep(NA_integer_, 4)
@@ -96,6 +102,92 @@ write_raw <- function(object, con) {
 #   print(charToRaw(res))
 #   res
 # }
+
+
+scale_x_duration <- function(..., units = c("s","min","h","day")){
+  units <- match.arg(units, c("ms","seconds","minutes","hours","days", "weeks", "months", "years"),
+                     several.ok = TRUE)
+  # to get them in the right order
+  units <- intersect(c("ms","seconds","minutes","hours","days", "weeks", "months", "years"), units)
+
+  ms    <- 1/1000
+  min   <- 60
+  h     <- 60 *min
+  day   <- 24 *h
+  week  <- 7 * day
+  year  <- 365.25 * day
+  month <- year / 12
+
+  labels <- function(x){
+    max_x <- max(x, na.rm=TRUE)
+
+    if("years" == units[[1]] || max_x > 3 * year && "years" %in% units){
+      # > 3 year, use years
+      x <- x /year
+      x <- paste(round(x,2),"years")
+    } else if("months" == units[[1]] || max_x > 3 * month && "months" %in% units){
+      # > 3 months, use months
+      x <- x /month
+      x <- paste(round(x,2),"months")
+    } else if("weeks" == units[[1]] || max_x > 3 * week && "weeks" %in% units){
+      # > 3 weeks, use weeks
+      x <- x /week
+      x <- paste(round(x,2),"weeks")
+    } else if("days" == units[[1]] || max_x > 3 * day && "days" %in% units){
+      # > 3 days, use days
+      x <- x /day
+      x <- paste(round(x,2),"days")
+    } else if("hours" == units[[1]] || max_x > 3 * h && "hours" %in% units){
+      # > 3 h, use h
+      x <- x /h
+      x <- paste(round(x,2),"h")
+    } else if("minutes" == units[[1]] || max_x > 3 * min && "minutes" %in% units){
+      # > 3 min, use min
+      x <- x /min
+      x <- paste(round(x,2),"min")
+    } else if("seconds" == units[[1]] || max_x > 3 * min && "seconds" %in% units){
+      # > 3 min, use min
+      x <- paste(round(x,2),"s")
+    } else if("ms" %in% units){
+      # > 3 min, use min
+      x <- x /min
+      x <- paste(round(x,2),"min")
+    } else {
+      stop("no unit was found for provided value of x")
+    }
+  }
+
+  breaks <- function(x){
+    max_x <- max(x, na.rm=TRUE)
+    if("years" == units[[1]] || max_x > 3 * year && "years" %in% units){
+      # > 3 year, use years
+      scales:::extended_breaks()(x/year) * year
+    } else if("months" == units[[1]] || max_x > 3 * month && "months" %in% units){
+      # > 3 months, use months
+      scales:::extended_breaks()(x/month) * month
+    } else if("weeks" == units[[1]] || max_x > 3 * week && "weeks" %in% units){
+      # > 3 weeks, use weeks
+      scales:::extended_breaks()(x/week) * week
+    } else if("days" == units[[1]] || max_x > 3 * day && "days" %in% units){
+      # > 3 days, use days
+      scales:::extended_breaks()(x/day) * day
+    } else if("hours" == units[[1]] || max_x > 3 * h && "hours" %in% units){
+      # > 3 h, use h
+      scales:::extended_breaks()(x/h) * h
+    } else if("minutes" == units[[1]] || max_x > 3 * min && "minutes" %in% units){
+      # > 3 min, use min
+      scales:::extended_breaks()(x/min) * min
+    }  else if("seconds" == units[[1]] || max_x > 3 && "seconds" %in% units){
+      # > 3 s, use s
+      scales:::extended_breaks()(x)
+    } else if("ms" %in% units){
+      scales:::extended_breaks()(x/ms) * ms
+    } else {
+      stop("no unit was found for provided value of x")
+    }
+  }
+  scale_x_continuous(..., labels = labels, breaks = breaks)
+}
 
 
 

@@ -97,12 +97,20 @@ mid$header
 #>    <int>    <int>                    <int>
 #> 1      1        3                      960
 
-# methods will be available, for now only: 
+# print names
 mid$track_names()
 #> [1] "Spring from the Four Seasons" "Violin"                      
 #> [3] "Piano"
 
-# we can save locally
+# plot
+mid$plot()
+```
+
+<img src="man/figures/README-unnamed-chunk-2-1.png" width="100%" />
+
+``` r
+
+# re-encode to midi
 local_file <- tempfile(fileext = ".mid")
 mid$encode(local_file)
 

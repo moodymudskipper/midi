@@ -16,4 +16,7 @@ Suggests:
 Imports: 
     purrr,
     vctrs,
-    tibble
+    tibble,
+    dplyr,
+    stats,
+    ggplot2
