@@ -8,11 +8,14 @@ midi <- R6::R6Class("midi", list(
     self$header <- header
     self$tracks <- tracks
   },
-  print = function(...) {
+  print = function(..., n = NULL) {
+    # so we can print tibbles with >20 rows
+    opt <- options(tibble.print_min = n)
+    on.exit(options(opt))
     message("header:")
-    print(self$header)
+    print(self$header, ...)
     message("tracks:")
-    print(self$tracks)
+    print(self$tracks, ...)
     invisible(self)
   }
 ))
@@ -27,7 +30,13 @@ midi$set("public", "track_names", function() {
 })
 
 
-
+#' #' @method print midi_track_list
+#' #' @export
+#' print.midi_track_list <- function(x, n= NULL){
+#'   opt <- options(tibble.print_max = n)
+#'   on.exit(options(opt))
+#'   NextMethod()
+#' }
 
 #' @method print midi_track
 #' @export
@@ -37,7 +46,7 @@ print.midi_track <- function(x, ...){
   x_displayed$time <- cumsum(x_displayed$deltatime)
   class(x_displayed) <- c("tbl_df", "tbl", "data.frame")
   x_displayed$params <- midi_params(x_displayed$params)
-  print(x_displayed[c("time", "event", "channel", "params")])
+  print(x_displayed[c("time",  "channel", "event", "params")], ...)
   invisible(x)
 }
 
@@ -53,6 +62,11 @@ format.midi_params <- function(x, ...) {
   ret <- purrr::map_chr(vctrs::field(x, "params"), ~ {
     .x[["channel"]] <- NULL
     .x[["length"]] <- NULL
+    .x[["controller_number"]] <- NULL
+    if(!is.null(.x[["key_number"]])) {
+      .x[["value"]] <- key_numbers$note2[key_numbers$key_number == .x[["key_number"]]]
+      .x[["key_number"]] <- NULL
+    }
     if(length(.x) == 1) return(as.character(.x))
     nms <- names(.x)
 
@@ -64,7 +78,7 @@ format.midi_params <- function(x, ...) {
   })
 
   ret <- sub("^value:", "", ret)
-  ret <- sub("^key_number: ", "", ret)
+  #ret <- sub("^key_number: ", "", ret)
   ret
 }
 
