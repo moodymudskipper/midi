@@ -51,17 +51,14 @@ mid
 # we can show separately header or tracks
 mid$header
 
-# methods will be available for extraction and transformations, for now only: 
+# methods will be available, for now only: 
 mid$track_names()
 
 # we can save locally
 local_file <- tempfile(fileext = ".mid")
-encode_midi(mid, local_file)
+mid$encode(local_file)
 
 # and reimport to check if our back and forth transformation was reliable
 mid_reimported <- parse_midi(local_file)
 all.equal(mid, mid_reimported) 
-
-# listen to it : 
-cat(local_file)
 ```
