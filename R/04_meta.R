@@ -89,7 +89,7 @@ write_meta_event <- function(event, con) {
     "Device Name" = writeChar(event$params[[1]]$value, con, nchars = event$params[[1]]$length, eos = NULL),
     "Sequence Number" =,
     "MIDI Channel Prefix" = ,
-    "MIDI Port" = write_integer(event$params[[1]]$value, con, size = elength[1]),
+    "MIDI Port" = write_integer(event$params[[1]]$value, con, size = event$params[[1]]$length),
     "Set Tempo" = {
       val <- event$params[[1]]$value
       tempo <- integer(3)
