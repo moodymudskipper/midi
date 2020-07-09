@@ -56,8 +56,6 @@ print.midi_track <- function(x, ...){
   invisible(x)
 }
 
-
-#' @export
 midi_params <- function(x) {
   vctrs::new_rcrd(list(params =x), class = "midi_params")
 }
