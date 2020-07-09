@@ -60,7 +60,10 @@ midi_params <- function(x) {
   vctrs::new_rcrd(list(params =x), class = "midi_params")
 }
 
-
+#' Methods for displaying midi parameters in midi object output
+#' @rdname midi_params_methods
+#' @param x object
+#' @param ... additional parameters passed to other methods
 #' @export
 format.midi_params <- function(x, ...) {
   ret <- purrr::map_chr(vctrs::field(x, "params"), ~ {
@@ -86,6 +89,7 @@ format.midi_params <- function(x, ...) {
   ret
 }
 
+#' @rdname
 #' @export
 vec_ptype_abbr.midi_params  <- function(x) {
   "params"
