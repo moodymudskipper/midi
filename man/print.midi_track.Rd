@@ -12,6 +12,11 @@ print.midi_track_list <- function(x, n= NULL){
 \usage{
 \method{print}{midi_track}(x, ...)
 }
+\arguments{
+\item{x}{midi_track object}
+
+\item{...}{additional parameters passed to the tibble print method}
+}
 \description{
 #' @method print midi_track_list
 #' @export

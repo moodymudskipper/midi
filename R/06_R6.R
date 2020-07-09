@@ -45,6 +45,8 @@ midi$set("public", "encode", function(to){
 #' }
 
 #' @method print midi_track
+#' @param x midi_track object
+#' @param ... additional parameters passed to the tibble print method
 #' @export
 print.midi_track <- function(x, ...){
   x_displayed <- x
@@ -89,7 +91,7 @@ format.midi_params <- function(x, ...) {
   ret
 }
 
-#' @rdname
+#' @rdname midi_params_methods
 #' @export
 vec_ptype_abbr.midi_params  <- function(x) {
   "params"
