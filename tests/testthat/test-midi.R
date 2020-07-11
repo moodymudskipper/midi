@@ -21,3 +21,4 @@ test_that("Priniting works", {
   mid <- parse_midi(file)
   expect_error(mid$print(n=2), NA)
 })
+

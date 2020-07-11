@@ -21,13 +21,14 @@ This is a rewrite of `TuneR::readMidi()`, with a counterpart to write midi.
 
 We don't create a data.frame but a R6 object.
 
-The structure is not stable yet.
+It's still very brittle and changes frequently significantly.
 
 I'd like to be able to change scales/modes, apply arpeggios etc, maybe do some
 analysis on big amounts of midi files to detect patterns in styles of music or
 specific artists, but we're far from there.
 
-I'd like to do the same with guitar pro files too.
+I'd like to do something similar with guitar pro files too as their structure is
+more suited to songwriting and the gp5 file format has been reverse engineered.
 
 ## Installation
 
@@ -43,7 +44,7 @@ Load a simple music file with 2 instruments (that's 3 tracks here)
 ```{r}
 library(midi)
 
-mid <- parse_midi("https://www.8notes.com/school/midi/violin/vivaldi_spring.mid")
+mid <- midi$new("https://www.8notes.com/school/midi/violin/vivaldi_spring.mid")
 
 # it prints nicely
 mid
@@ -51,8 +52,9 @@ mid
 # we can show separately header or tracks
 mid$header
 
-# print names
-mid$track_names()
+# print names, tempo, key
+mid$names
+mid$tempo
 
 # plot
 mid$plot()
@@ -63,5 +65,33 @@ mid$encode(local_file)
 
 # and reimport to check if our back and forth transformation was reliable
 mid_reimported <- parse_midi(local_file)
-all.equal(mid, mid_reimported) 
+all.equal(mid, mid_reimported)
 ```
+
+We can play one track or two in stereo, this is done by converting to wave,
+directly inspired by David Solito's work 
+(see https://www.davidsolito.com/post/midiplayer-avec-r-part-2/ ).
+
+```{r, eval = FALSE}
+mid$play("Piano","Violin")
+```
+
+We can also use `$cut()` to restrict the song to a time window, `$rename()` and `$select()` to manipulate tracks, `$set_tempo()` to assign a tempo,
+`$shift_hstep()`to move all notes of chosen tracks by half steps or `$shift_degree`
+to shift chosen tracks by a chosen interval on a chosen scale.
+
+These modifications don't produce yet an obejct that one can re-encode back to midi,
+but we can already use our `$play()` method on them.
+
+Harmonize vivaldi :
+
+```{r, eval = FALSE}
+vivaldi_mid$
+  # select Violin track twice (i.e. subset and duplicate)
+  select(Violin1=Violin, Violin3=Violin)$
+  # shift all notes by 2 intervals in A maj so Violin3 is the third of Violin1
+  shift_degree(2, scale_major("a"), at = Violin3)$
+  # play in the re
+  play("Violin","Violin3")
+```
+

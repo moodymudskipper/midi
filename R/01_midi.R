@@ -10,31 +10,6 @@
 # build test files :
 # https://onlinesequencer.net/
 
-#' Load a midi file into a midi object
-#'
-#' @param file path to midi file
-#'
-#' @export
-parse_midi <- function(file){
-  con <- file(description = file, open = "rb")
-  on.exit(close(con))
-
-  message("parsing header")
-  header <- parse_header(con)
-  message("parsing tracks")
-  tracks <- parse_tracks(con, header$n_tracks)
-  tracks <- lapply(tracks, function(x) {
-    class(x) <- c("midi_track", class(x))
-    x
-    })
-  names(tracks) <- vapply(tracks, function(x) {
-    params <- x[["params"]][x$event == "Sequence/Track Name"]
-    if(length(params)) params[[1]][["value"]] else ""
-  }, character(1), USE.NAMES = FALSE)
-  #class(tracks) <- c("midi_track_list", class(tracks))
-
-  midi$new(header, tracks)
-}
 
 parse_header <- function(con){
   # As comments We copy and paste or paraphrase pieces of doc from :

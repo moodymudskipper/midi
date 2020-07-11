@@ -1,14 +1,36 @@
+#' midi class constructor
+#'
+#' @export
 midi <- R6::R6Class("midi", list(
   header = NULL,
-  tracks = NULL,
-  initialize = function(
-    header = list(format = 1, n_tracks = 0, n_ticks_per_quarter_note = 960),
-    tracks = list()){
-    # we might want to be able define an empty midi with default headers etc
-    self$header <- header
-    self$tracks <- tracks
-  }
+  tracks = NULL #,
+  # initialize = function(
+  #   header = list(format = 1, n_tracks = 0, n_ticks_per_quarter_note = 960),
+  #   tracks = list()){
+  #   # we might want to be able define an empty midi with default headers etc
+  #   self$header <- header
+  #   self$tracks <- tracks
+  # }
 ))
+
+
+midi$set("public", "initialize", function(file){
+  con <- file(description = file, open = "rb")
+  on.exit(close(con))
+
+  header <- parse_header(con)
+  tracks <- parse_tracks(con, header$n_tracks)
+  tracks <- lapply(tracks, as_midi_track)
+  names(tracks) <- vapply(tracks, function(x) {
+    params <- x[["params"]][x$event == "Sequence/Track Name"]
+    if(length(params)) params[[1]][["value"]] else ""
+  }, character(1), USE.NAMES = FALSE)
+
+  self$header <- header
+  self$tracks <- tracks
+})
+
+parse_midi <-
 
 midi$set("public", "print", function(..., n = NULL) {
   # so we can print tibbles with >20 rows
@@ -21,7 +43,8 @@ midi$set("public", "print", function(..., n = NULL) {
   invisible(self)
 })
 
-midi$set("public", "track_names", function() {
+# $names
+midi$set("active", "names", function() {
   # vapply(self$tracks, function(x) {
   #   params <- x[["params"]][x$event == "Sequence/Track Name"]
   #   if(length(params)) params[[1]][["value"]] else ""
@@ -29,6 +52,7 @@ midi$set("public", "track_names", function() {
   names(self$tracks)
 })
 
+# $encode()
 midi$set("public", "encode", function(to){
   file.create(to)
   con <- file(description = to, open = "wb")
@@ -38,38 +62,56 @@ midi$set("public", "encode", function(to){
 })
 
 
+# $cut()
+midi$set("public", "cut", function(start = 0, end = Inf, unit = c("sec", "tick")) {
+  mid <- self$clone(deep=TRUE)
+
+  unit <- match.arg(unit)
+  if(unit == "sec") {
+  tempo <- subset(mid$tracks[[1]], event == "Set Tempo")$params
+  if(!length(tempo)) stop("plotting is not yet supported for this midi format, ",
+                          "please complain at http://www.github.com/moodymudskipper/midi")
+  tempo <- tempo[[1]]$value
+  conv_factor <- tempo / mid$header$n_ticks_per_quarter_note/ 1e6
+  } else {
+    conv_factor <-1
+  }
+
+  mid[["tracks"]][-1] <- lapply(mid[["tracks"]][-1], function(x) {
+    #browser
+    x %>%
+      # add time as cumsum of deltatime, converted to sec if relevant
+      mutate(time = cumsum(deltatime) * conv_factor) %>%
+      # add rowid to backup order
+      rowid_to_column() %>%
+      # convert back to tibble so it prints conveniently for debugging
+      tibble::as_tibble() %>%
+      # extract channel so we can sort and not have intertwined note_on note_off pairs
+      tidyr::hoist(params, "channel", "key_number", .remove = FALSE) %>%
+      arrange(channel, key_number, time) %>%
+      # compute note_id for note events
+      mutate(
+        note_id = ifelse(
+          event == "Note On",
+          cumsum(event == "Note On"),
+          ifelse(event == "Note Off", cumsum(event == "Note Off"), NA))) %>%
+      # keep non note event and event happening after start
+      filter(!event %in% c("Note On", "Note Off") | time >= start & time <= end) %>%
+      # count remaining note_id pairs and remove unfinished sounds
+      add_count(note_id) %>%
+      filter(is.na(note_id) | n == 2) %>%
+      # return to standard format
+      arrange(rowid) %>%
+      select(-rowid, -channel, -note_id) %>%
+      as_midi_track})
+  mid
+})
+
+
+# $plot()
 midi$set("public", "plot", function(){
 
-  # tempo is in in microseconds per MIDI quarter-note
-  # header has n_ticks_per_quarter_note (most of the time! There's another system, not supported)
-  # deltatime is in ticks
-  # so deltatime / n_ticks_per_quarter_note * tempo will give the time
-
-  tempo <- subset(self$tracks[[1]], event == "Set Tempo")$params
-  if(!length(tempo)) stop("plotting is not yet supported for this midi format, ",
-  "please complain at http://www.github.com/moodymudskipper/midi")
-  tempo <- tempo[[1]]$value
-
-  notes <-
-    self$tracks %>%
-    setNames(ifelse(names(.) == "", seq_along(.), names(.))) %>%
-    purrr::map(mutate, time = cumsum(deltatime) /
-                 self$header$n_ticks_per_quarter_note *
-                 tempo / 1e6) %>%
-    bind_rows( .id = "track_name") %>%
-    tibble::as_tibble() %>%
-    filter(event %in% c("Note On", "Note Off")) %>%
-    tidyr::hoist(params, "channel", "key_number") %>%
-    select(track_name, time, event, channel, key_number) %>%
-    arrange(track_name, channel, key_number, time) %>%
-    mutate(note_id = ifelse(
-      event == "Note On",
-      cumsum(event == "Note On"),
-      cumsum(event == "Note Off")),
-      event = tolower(gsub(" ", "_", event)),
-      "track name channel" = paste0(track_name, " (ch. ", channel, ")"),
-    ) %>%
-    tidyr::pivot_wider(names_from = event, values_from = time)
+  notes <- get_notes(self)
 
   notes %>%
     ggplot(aes(x = note_on, xend = note_off, y = key_number, yend = key_number,
@@ -80,73 +122,149 @@ midi$set("public", "plot", function(){
     theme(panel.grid.minor.y = element_line(size=.1),
           panel.grid.major.y = element_line(size=.1, colour = "grey"),
           legend.title=element_blank()) +
-    labs(x= "time", y="", title = self$track_names()[[1]]) +
+    labs(x= "time", y="", title = self$names[[1]]) +
     scale_x_duration()
 })
 
 
 
 
-
-
-
-#' #' @method print midi_track_list
-#' #' @export
-#' print.midi_track_list <- function(x, n= NULL){
-#'   opt <- options(tibble.print_max = n)
-#'   on.exit(options(opt))
-#'   NextMethod()
-#' }
-
-#' @method print midi_track
-#' @param x midi_track object
-#' @param ... additional parameters passed to the tibble print method
-#' @export
-print.midi_track <- function(x, ...){
-  x_displayed <- x
-  x_displayed$channel <- purrr::map_int(x$params, ~ as.integer(purrr::pluck(.,"channel", .default = NA)))
-  x_displayed$time <- cumsum(x_displayed$deltatime)
-  class(x_displayed) <- c("tbl_df", "tbl", "data.frame")
-  x_displayed$params <- midi_params(x_displayed$params)
-  print(x_displayed[c("time",  "channel", "event", "params")], ...)
-  invisible(x)
-}
-
-midi_params <- function(x) {
-  vctrs::new_rcrd(list(params =x), class = "midi_params")
-}
-
-#' Methods for displaying midi parameters in midi object output
-#' @rdname midi_params_methods
-#' @param x object
-#' @param ... additional parameters passed to other methods
-#' @export
-format.midi_params <- function(x, ...) {
-  ret <- purrr::map_chr(vctrs::field(x, "params"), ~ {
-    .x[["channel"]] <- NULL
-    .x[["length"]] <- NULL
-    .x[["controller_number"]] <- NULL
-    if(!is.null(.x[["key_number"]])) {
-      .x[["value"]] <- key_numbers$note2[key_numbers$key_number == .x[["key_number"]]]
-      .x[["key_number"]] <- NULL
+# $select()
+midi$set("public", "select", function(...){
+  mid <- self$clone(deep=TRUE)
+  pos <- tidyselect::eval_select(rlang::expr(c(...)), mid$tracks, include=1)
+  mid$tracks <- setNames(mid$tracks[pos], names(pos))
+  # we must rename in the code too!
+  mid$tracks[-1] <- Map(mid$tracks[-1], names(mid$tracks[-1]), f = function(track, nm){
+    pos <- which(track$event == "Sequence/Track Name")
+    if(length(pos)) {
+      track$params[[pos]] <- list(value = nm, length = nchar(nm))
+    } else if (nm != ""){
+      track <- dplyr::add_row(
+        track,
+        deltatime = 0,
+        event_type = "meta",
+        event = "Sequence/Track Name",
+        type = "03",
+        params = list(list(value = nm, length = nchar(nm))),
+        EventChannel = as.raw(0xff),
+        .before = 1)
     }
-    if(length(.x) == 1) return(as.character(.x))
-    nms <- names(.x)
-
-    if("value" %in% nms) {
-      nms <- unique(c("value", nms))
-      .x <- .x[nms]
-    }
-    paste(nms, format(.x, width = 3), sep = ": ", collapse = ", ")
+    track
   })
+  mid
+})
 
-  ret <- sub("^value:", "", ret)
-  #ret <- sub("^key_number: ", "", ret)
-  ret
-}
+# $rename()
+midi$set("public", "rename", function(...){
+  mid <- self$clone(deep=TRUE)
+  pos <- tidyselect::eval_rename(rlang::expr(c(...)), mid$tracks)
+  names(mid$tracks)[pos] <- names(pos)
+  # we must rename in the code too!
+  mid$tracks[-1] <- Map(mid$tracks[-1], names(mid$tracks[-1]), f = function(track, nm){
+    pos <- which(track$event == "Sequence/Track Name")
+    if(length(pos)) {
+      track$params[[pos]] <- list(value = nm, length = nchar(nm))
+    } else if (nm != ""){
+      track <- dplyr::add_row(
+        track,
+        deltatime = 0,
+        event_type = "meta",
+        event = "Sequence/Track Name",
+        type = "03",
+        params = list(list(value = nm, length = nchar(nm))),
+        EventChannel = as.raw(0xff),
+        .before = 1)
+    }
+    track
+  })
+  mid
+})
 
-#' @rdname midi_params_methods
-#' @export
-vec_ptype_abbr.midi_params  <- function(x) {
-  "params"
-}
+
+# $tempo
+midi$set("active", "tempo", function(){
+  pos <- which(mid$tracks[[1]]$event == "Set Tempo")
+  tempo <- mid$tracks[[1]]$params[[pos]]$value
+  tibble(bpm = 60*1e6/tempo, micro_seconds_per_quarter_note = as.integer(tempo))
+})
+
+# $set_tempo()
+midi$set("public", "set_tempo", function(tempo, metric = c(
+  "bpm", "relative", "micro_seconds_per_quarter_note")){
+  metric <- match.arg(metric)
+  mid <- self$clone(deep=TRUE)
+  pos <- which(mid$tracks[[1]]$event == "Set Tempo")
+  old_tempo <- mid$tracks[[1]]$params[[pos]]$value
+  new_tempo <- switch(metric,
+                      bpm = 60*1e6/tempo,
+                      relative = old_tempo / tempo,
+                      micro_seconds_per_quarter_note = tempo)
+  new_tempo <- round(new_tempo)
+  mid$tracks[[1]]$params[[pos]]$value <- new_tempo
+  mid
+})
+
+
+# $shift_hstep()
+midi$set("public", "shift_hstep", function(n, at = -1){
+  mid <- self$clone(deep=TRUE)
+  # if(is.character(to)) {
+  #   if(!to %in% c("c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"))
+  #     stop("`to` should be a valid note")
+  #   if(!missing(from)){
+  #     if(!is.character(from) || ! from %in% c("c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"))
+  #       stop("`from` should be a valid note")
+  #   }
+  #   stop("not supported yet! please use a numeric value for `to`")
+  # }
+  pos <- tidyselect::eval_select(rlang::enquo(at), mid$tracks, include=1)
+  mid$tracks[pos] <- lapply(mid$tracks[pos], function(track){
+    track$params <- map(track$params, ~ {
+      if(!is.null(.$key_number))
+        .$key_number <- .$key_number + n
+      .
+    })
+    track
+  })
+  mid
+})
+
+midi$set("active", "key", function(){
+  pos <- which(mid$tracks[[1]]$event == "Key Signature")
+  key <- map_chr(pos, ~mid$tracks[[1]]$params[[.]]$value)
+  tibble(time = cumsum(mid$tracks[[1]]$deltatime)[pos],
+         key = key)
+})
+
+
+
+# $shift_degree()
+midi$set("public", "shift_degree", function(n, scale, at = -1){
+  mid <- self$clone(deep=TRUE)
+  scale <- as.character(scale)
+  scale <- gsub("[,']", "", scale)
+  root <- scale[[1]]
+  chromatic <- gsub("[,']", "", as.character(scale_chromatic(root)))
+
+  shifted_scale <- c(scale[-seq(n)], scale[seq(n)])
+  deltas <-
+    match(shifted_scale, chromatic) -
+    match(scale, chromatic)
+  deltas <- deltas %% 12
+  deltas <- setNames(deltas, scale)
+
+  pos <- tidyselect::eval_select(rlang::enquo(at), mid$tracks, include=1)
+  mid$tracks[pos] <- lapply(mid$tracks[pos], function(track){
+    track$params <- map(track$params, ~ {
+      if(!is.null(.$key_number)) {
+        note <- subset(key_numbers, key_number == .$key_number)$note
+        .$key_number <- .$key_number + deltas[note]
+
+      }
+      .
+    })
+    track
+  })
+  mid
+})

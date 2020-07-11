@@ -1,10 +1,21 @@
 #' @importFrom magrittr %>%
 #' @importFrom stats setNames
 #' @importFrom dplyr mutate filter group_by summarize select arrange bind_rows
+#' @importFrom dplyr distinct pull transmute left_join lead first lag
 #' @importFrom ggplot2 ggplot aes geom_segment labs theme theme_classic
 #' @importFrom ggplot2 scale_y_continuous element_line element_blank
 #' @importFrom ggplot2 scale_x_continuous
+#' @importFrom purrr map map2
+#' @importFrom tibble tibble as_tibble
+#' @importFrom tidyselect eval_select eval_rename
+#' @importFrom tidyr replace_na hoist
+#' @importFrom rlang expr
 NULL
+
+as_midi_track <- function(x) {
+  class(x) <- c("midi_track", class(x))
+  x
+}
 
 write_var_length <- function(n, con){
   b <- rep(NA_integer_, 4)
@@ -103,6 +114,37 @@ write_raw <- function(object, con) {
 #   res
 # }
 
+get_notes <- function(mid){
+  # tempo is in in microseconds per MIDI quarter-note
+  # header has n_ticks_per_quarter_note (most of the time! There's another system, not supported)
+  # deltatime is in ticks
+  # so deltatime / n_ticks_per_quarter_note * tempo will give the time
+
+  tempo <- subset(mid$tracks[[1]], event == "Set Tempo")$params
+  if(!length(tempo)) stop("plotting is not yet supported for this midi format, ",
+                          "please complain at http://www.github.com/moodymudskipper/midi")
+  tempo <- tempo[[1]]$value
+
+  mid$tracks %>%
+    setNames(ifelse(names(.) == "", seq_along(.), names(.))) %>%
+    purrr::map(mutate, time = cumsum(deltatime) /
+                 mid$header$n_ticks_per_quarter_note *
+                 tempo / 1e6) %>%
+    bind_rows( .id = "track_name") %>%
+    tibble::as_tibble() %>%
+    filter(event %in% c("Note On", "Note Off")) %>%
+    tidyr::hoist(params, "channel", "key_number") %>%
+    select(track_name, time, event, channel, key_number) %>%
+    arrange(track_name, channel, key_number, time) %>%
+    mutate(note_id = ifelse(
+      event == "Note On",
+      cumsum(event == "Note On"),
+      cumsum(event == "Note Off")),
+      event = tolower(gsub(" ", "_", event)),
+      "track name channel" = paste0(track_name, " (ch. ", channel, ")"),
+    ) %>%
+    tidyr::pivot_wider(names_from = event, values_from = time)
+}
 
 scale_x_duration <- function(..., units = c("s","min","h","day")){
   units <- match.arg(units, c("ms","seconds","minutes","hours","days", "weeks", "months", "years"),

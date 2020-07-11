@@ -2,6 +2,10 @@ Package: midi
 Type: Package
 Title: Work with midi Objects
 Version: 0.1.0
+Authors@R: c(
+    person("Antoine", "Fabri", email = "antoine.fabri@gmail.com", role = "cre"),
+    person("Uwe", "Liggs", role = "ctr"),
+    person("Johanna", "Mielke", role = "ctr"))
 Author: Antoine Fabri
 Maintainer: The package maintainer <antoine.fabri@gmail.com>
 Description: Load midi file into an R6 object, apply methods, and encode back to a midi file.
@@ -19,4 +23,6 @@ Imports:
     tibble,
     dplyr,
     stats,
-    ggplot2
+    ggplot2,
+    rlang,
+    tidyselect
