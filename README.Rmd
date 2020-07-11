@@ -64,7 +64,7 @@ local_file <- tempfile(fileext = ".mid")
 mid$encode(local_file)
 
 # and reimport to check if our back and forth transformation was reliable
-mid_reimported <- parse_midi(local_file)
+mid_reimported <- midi$new(local_file)
 all.equal(mid, mid_reimported)
 ```
 
@@ -83,15 +83,15 @@ to shift chosen tracks by a chosen interval on a chosen scale.
 These modifications don't produce yet an obejct that one can re-encode back to midi,
 but we can already use our `$play()` method on them.
 
-Harmonize vivaldi :
+Harmonize Vivaldi :
 
 ```{r, eval = FALSE}
-vivaldi_mid$
+mid$
   # select Violin track twice (i.e. subset and duplicate)
   select(Violin1=Violin, Violin3=Violin)$
   # shift all notes by 2 intervals in A maj so Violin3 is the third of Violin1
   shift_degree(2, scale_major("a"), at = Violin3)$
-  # play in the re
+  # mix and play
   play("Violin","Violin3")
 ```
 
