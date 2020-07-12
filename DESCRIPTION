@@ -25,4 +25,10 @@ Imports:
     stats,
     ggplot2,
     rlang,
-    tidyselect
+    tidyselect,
+    tabr,
+    magrittr,
+    tidyr,
+    scales,
+    seewave,
+    tuneR

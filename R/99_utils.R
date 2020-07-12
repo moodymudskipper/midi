@@ -115,6 +115,9 @@ write_raw <- function(object, con) {
 # }
 
 get_notes <- function(mid){
+  event <- . <- deltatime <- params <- track_name <- time <- channel <-
+    key_number <- NULL
+
   # tempo is in in microseconds per MIDI quarter-note
   # header has n_ticks_per_quarter_note (most of the time! There's another system, not supported)
   # deltatime is in ticks
@@ -203,27 +206,27 @@ scale_x_duration <- function(..., units = c("s","min","h","day")){
     max_x <- max(x, na.rm=TRUE)
     if("years" == units[[1]] || max_x > 3 * year && "years" %in% units){
       # > 3 year, use years
-      scales:::extended_breaks()(x/year) * year
+      scales::extended_breaks()(x/year) * year
     } else if("months" == units[[1]] || max_x > 3 * month && "months" %in% units){
       # > 3 months, use months
-      scales:::extended_breaks()(x/month) * month
+      scales::extended_breaks()(x/month) * month
     } else if("weeks" == units[[1]] || max_x > 3 * week && "weeks" %in% units){
       # > 3 weeks, use weeks
-      scales:::extended_breaks()(x/week) * week
+      scales::extended_breaks()(x/week) * week
     } else if("days" == units[[1]] || max_x > 3 * day && "days" %in% units){
       # > 3 days, use days
-      scales:::extended_breaks()(x/day) * day
+      scales::extended_breaks()(x/day) * day
     } else if("hours" == units[[1]] || max_x > 3 * h && "hours" %in% units){
       # > 3 h, use h
-      scales:::extended_breaks()(x/h) * h
+      scales::extended_breaks()(x/h) * h
     } else if("minutes" == units[[1]] || max_x > 3 * min && "minutes" %in% units){
       # > 3 min, use min
-      scales:::extended_breaks()(x/min) * min
+      scales::extended_breaks()(x/min) * min
     }  else if("seconds" == units[[1]] || max_x > 3 && "seconds" %in% units){
       # > 3 s, use s
-      scales:::extended_breaks()(x)
+      scales::extended_breaks()(x)
     } else if("ms" %in% units){
-      scales:::extended_breaks()(x/ms) * ms
+      scales::extended_breaks()(x/ms) * ms
     } else {
       stop("no unit was found for provided value of x")
     }

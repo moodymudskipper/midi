@@ -3,7 +3,6 @@
 S3method(format,midi_params)
 S3method(print,midi_track)
 export(midi)
-export(parse_midi)
 export(scale_chromatic)
 export(scale_harmonic_minor)
 export(scale_hungarian_minor)

@@ -1,5 +1,9 @@
 #' scales
 #'
+#' Functions re-exported from tabr package.
+#'
+#' @inheritParams tabr::scale_major
+#'
 #' @rdname scales
 #' @export
 scale_major <- tabr::scale_major

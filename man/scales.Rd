@@ -31,6 +31,24 @@ scale_chromatic(
   ignore_octave = FALSE
 )
 }
+\arguments{
+\item{key}{character, key signature.}
+
+\item{collapse}{logical, collapse result into a single string ready for
+phrase construction.}
+
+\item{ignore_octave}{logical, strip octave numbering from scales not rooted
+on C.}
+
+\item{descending}{logical, return the descending scale, available as a
+built-in argument for the melodic minor scale, which is different in each
+direction.}
+
+\item{root}{character, root note.}
+
+\item{sharp}{logical, accidentals in arbitrary scale output should be sharp
+rather than flat.}
+}
 \description{
-scales
+Functions re-exported from tabr package.
 }

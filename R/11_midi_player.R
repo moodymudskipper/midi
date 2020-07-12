@@ -61,6 +61,11 @@ midi$set("public", "play", function(
 })
 
 build_morse <- function(notes, kn, tn, track_length) {
+  # to avoid notes :
+  key_number <- track_name <- note_off <- note_on <- silence_off <-
+    silence_on <- silence_length <- note_length <- freq <- synth <-
+    . <- NULL
+
   sf <- 4000
   signal <- "sine"
   shape <- "sine"

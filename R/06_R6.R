@@ -30,7 +30,6 @@ midi$set("public", "initialize", function(file){
   self$tracks <- tracks
 })
 
-parse_midi <-
 
 midi$set("public", "print", function(..., n = NULL) {
   # so we can print tibbles with >20 rows
