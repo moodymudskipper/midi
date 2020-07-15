@@ -218,7 +218,7 @@ key_numbers$note2 <- tolower(key_numbers$note2)
 # )
 
 
-pitch_table <- read.table(h=TRUE, text="key_number         freq
+pitch_table <- read.table(header = TRUE, text="key_number         freq
 127 12543.853951
 126 11839.821527
 125 11175.303406
