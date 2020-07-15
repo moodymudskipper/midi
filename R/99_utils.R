@@ -5,7 +5,7 @@
 #' @importFrom ggplot2 ggplot aes geom_segment labs theme theme_classic
 #' @importFrom ggplot2 scale_y_continuous element_line element_blank
 #' @importFrom ggplot2 scale_x_continuous
-#' @importFrom purrr map map2
+#' @importFrom purrr map map2 map_lgl map_dfc
 #' @importFrom tibble tibble as_tibble
 #' @importFrom tidyselect eval_select eval_rename
 #' @importFrom tidyr replace_na hoist
@@ -117,7 +117,6 @@ write_raw <- function(object, con) {
 get_notes <- function(mid){
   event <- . <- deltatime <- params <- track_name <- time <- channel <-
     key_number <- NULL
-
   # tempo is in in microseconds per MIDI quarter-note
   # header has n_ticks_per_quarter_note (most of the time! There's another system, not supported)
   # deltatime is in ticks
@@ -128,7 +127,7 @@ get_notes <- function(mid){
                           "please complain at http://www.github.com/moodymudskipper/midi")
   tempo <- tempo[[1]]$value
 
-  mid$tracks %>%
+  notes <- mid$tracks %>%
     setNames(ifelse(names(.) == "", seq_along(.), names(.))) %>%
     purrr::map(mutate, time = cumsum(deltatime) /
                  mid$header$n_ticks_per_quarter_note *
@@ -147,6 +146,10 @@ get_notes <- function(mid){
       "track name channel" = paste0(track_name, " (ch. ", channel, ")"),
     ) %>%
     tidyr::pivot_wider(names_from = event, values_from = time)
+
+  if(any(notes$note_on > notes$note_off))
+    stop("We can't have a note off before its associated note on!")
+  notes
 }
 
 scale_x_duration <- function(..., units = c("s","min","h","day")){
