@@ -11,7 +11,6 @@ read_system_message_event <- function(con, event, DT, EventChannel) {
 }
 
 write_system_message_event <- function(event, con) {
-  #browser()
   write_var_length(event$params[[1]]$length, con)
   write_integer(event$params[[1]]$value, con)
 }

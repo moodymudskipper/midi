@@ -18,7 +18,6 @@ read_channel_voice_event <- function(con, nibble1, DT, byte1) {
 
   # For control change we edit the event
   if(nibble1 == "b"){
-    #browser()
     descr <- controller_messages$descr[
       controller_messages$byte2_dec == params$controller_number]
     event <- paste0(event, ": ", descr)
