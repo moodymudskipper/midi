@@ -21,6 +21,7 @@ midi class constructor
 \item \href{#method-set_tempo}{\code{midi$set_tempo()}}
 \item \href{#method-shift_hstep}{\code{midi$shift_hstep()}}
 \item \href{#method-shift_degree}{\code{midi$shift_degree()}}
+\item \href{#method-negative_harmony}{\code{midi$negative_harmony()}}
 \item \href{#method-play}{\code{midi$play()}}
 \item \href{#method-clone}{\code{midi$clone()}}
 }
@@ -114,7 +115,16 @@ midi class constructor
 \if{latex}{\out{\hypertarget{method-shift_degree}{}}}
 \subsection{Method \code{shift_degree()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{midi$shift_degree(n, scale, at = -1)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{midi$shift_degree(n, scale, at = -1, stay_home = FALSE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-negative_harmony"></a>}}
+\if{latex}{\out{\hypertarget{method-negative_harmony}{}}}
+\subsection{Method \code{negative_harmony()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{midi$negative_harmony(pivot = 60, at = -1, stay_home = FALSE)}\if{html}{\out{</div>}}
 }
 
 }
