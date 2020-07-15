@@ -77,7 +77,6 @@ midi$set("public", "cut", function(start = 0, end = Inf, unit = c("sec", "tick")
   }
 
   mid[["tracks"]][-1] <- lapply(mid[["tracks"]][-1], function(x) {
-    #browser
     x %>%
       # add time as cumsum of deltatime, converted to sec if relevant
       mutate(time = cumsum(deltatime) * conv_factor) %>%
@@ -239,7 +238,7 @@ midi$set("active", "key", function(){
 
 
 # $shift_degree()
-midi$set("public", "shift_degree", function(n, scale, at = -1){
+midi$set("public", "shift_degree", function(n, scale, at = -1, stay_home = FALSE){
   mid <- self$clone(deep=TRUE)
   scale <- as.character(scale)
   scale <- gsub("[,']", "", scale)
@@ -252,8 +251,10 @@ midi$set("public", "shift_degree", function(n, scale, at = -1){
     match(scale, chromatic)
   deltas <- deltas %% 12
   deltas <- setNames(deltas, scale)
+  if(stay_home) deltas <- deltas - deltas[1]
+  # wat do we do with borrowed notes though ? a lazy solution would be to leave them where they are
 
-  pos <- tidyselect::eval_select(rlang::enquo(at), mid$tracks, include=1)
+  pos <- tidyselect::eval_select(rlang::enquo(at), mid$tracks, exclude=1)
   mid$tracks[pos] <- lapply(mid$tracks[pos], function(track){
     track$params <- map(track$params, ~ {
       if(!is.null(.$key_number)) {
@@ -267,3 +268,57 @@ midi$set("public", "shift_degree", function(n, scale, at = -1){
   })
   mid
 })
+
+
+# $negative_harmony()
+midi$set("public", "negative_harmony", function(pivot = 60, at = -1, stay_home = FALSE){
+  mid <- self$clone(deep=TRUE)
+  # chromatic <- as.character(scale_chromatic(pivot, ignore_octave = TRUE))
+  # deltas <- -2*(0:11)
+  # if(!stay_home) deltas <- deltas + 7
+  # deltas <- setNames(deltas, chromatic)
+  if(is.character(pivot)){
+    #convert note (e.g. a4) into key_number
+    # maybe "auto" (default ?) can take a center that preserves the span ?
+  }
+
+  pos <- tidyselect::eval_select(rlang::enquo(at), mid$tracks, exclude=1)
+  mid$tracks[pos] <- lapply(mid$tracks[pos], function(track){
+    track$params <- map(track$params, ~ {
+      if(!is.null(.$key_number)) {
+        #note <- subset(key_numbers, key_number == .$key_number)$note
+        .$key_number <- -.$key_number + 2*pivot
+        if(.$key_number < 0 || .$key_number > 127)
+          stop("tried to use key_number ", .$key_number, ". It should fall between 0 and 127, try another pivot!")
+      }
+      .
+    })
+    track
+  })
+  mid
+})
+
+
+# # $reverse()
+# midi$set("public", "reverse", function(at = -1){
+#   # the current way of reversing is not good enough, because source data is not
+#   # note on note off note on..., so when we revert the delta times they're not
+#   # always associated to the right thing, pairs have to be identified, then spread again
+#   # quite more complicated!
+#   mid <- self$clone(deep=TRUE)
+#   pos <- tidyselect::eval_select(rlang::enquo(at), mid$tracks, exclude=1)
+#   mid$tracks[pos] <- lapply(mid$tracks[pos], function(track){
+#
+#     notes_on_lgl <- track$event == "Note On"
+#     notes_off_lgl <- track$event == "Note Off"
+#
+#     track[] <- map(track, ~{
+#       #browser()
+#     .[notes_on_lgl]  <- rev(.[notes_on_lgl])
+#     .[notes_off_lgl] <- rev(.[notes_off_lgl])
+#     .
+#     })
+#     track
+#   })
+#   mid
+# })
